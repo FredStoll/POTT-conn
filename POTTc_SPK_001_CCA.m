@@ -5,8 +5,9 @@
 %- https://doi.org/10.1101/2024.07.05.602229
 %-
 %- Require spk data from all sessions (files like M000000a_SPKpool_counts_1ms.mat)
-%- Should run a few times with different parameters to perform all possible analyses: 
-%- 
+%- Should run a few times with different parameters to perform all possible analyses, 
+%- the output of which is available at : 10.5281/zenodo.13306842
+%-
 %- MAIN ANALYSES: 
 %-      FIG 2/5/6/S2/S3: param.crosstemp = true; param.resid = false;
 %-      FIG S1: param.crosstemp = false; param.resid = false; param.bins4decoding=[1 2 4 5 6]; %- that one takes many hours!

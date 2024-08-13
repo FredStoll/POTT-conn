@@ -4,6 +4,8 @@
 %- Stoll & Rudebeck (2024) Decision-making shapes dynamic inter-areal communication within macaque ventral frontal cortex
 %- https://doi.org/10.1101/2024.07.05.602229
 %-
+%- Require data available at : 10.5281/zenodo.13306842
+%-
 %- Author: Fred M. Stoll, Icahn School of Medicine at Mount Sinai, NY
 %- Last updated: 2024.08
 
@@ -17,11 +19,11 @@ elseif ispc
     path2go = 'R:\POTTconn\data\'; %- path where SPKpool files are!
 end
 
-ana2run = 'lesion'; % 'main' / 'lesion' / 'alltime'
-area2run = 'a12o'; %- only used for ana2run='lesion' / can be a12o/a11ml/LAI
-period2run = 'Rew'; %- only used for ana2run='lesion' / can be 'Stim' 'Rew'
+ana2run = 'lesion'; % 'main' / 'lesion' / 'alltime' / 'rewTr'
+area2run = 'a12o'; %- only used for ana2run='lesion' or 'rewTr' / can be a12o/a11ml/LAI
+period2run = 'Stim'; %- only used for ana2run='lesion' / can be 'Stim' 'Rew'
 crosstemp = false; %- only used for ana2run='lesion' / can be true (FIGURE S5) or false (FIGURES 3/S4)
-bothresid = true; %- when using residuals on both area (Figure S4A): true, otherwise false
+bothresid = false; %- when using residuals on both area (Figure S4A): true, otherwise false
 
 %- colors for areas
 colorsArea = cbrewer('qual', 'Paired', 12);
@@ -47,7 +49,7 @@ end
 
 if strcmp(ana2run,'lesion') && strcmp(period2run,'Stim')
     periods = periods([1 2]);periods_bin = periods_bin([1 2]);periods_time = periods_time([1 2]);
-elseif strcmp(ana2run,'lesion') && strcmp(period2run,'Rew')
+elseif (strcmp(ana2run,'lesion') && strcmp(period2run,'Rew')) || strcmp(ana2run,'rewTr')
     periods = periods([1 3]);periods_bin = periods_bin([1 3]);periods_time = periods_time([1 3]);
 end
 
@@ -59,6 +61,18 @@ if strcmp(ana2run,'main')
 elseif strcmp(ana2run,'alltime')
     filename = [path2go 'FINAL_CCA_INS_8areas_perm_25sdf_25ms_raw_alltime.mat'];
     load(filename)
+
+elseif strcmp(ana2run,'rewTr')
+    LESION{1} = load([path2go 'FINAL_CCA_INS_8areas_perm_25sdf_25ms_raw_rewarded.mat']);
+    LESION{2} = load([path2go 'FINAL_CCA_INS_8areas_perm_25sdf_25ms_raw_unrewarded.mat']);
+    area2test = LESION{1}.area2test;
+    param = LESION{1}.param;
+
+    predic = {'rew' 'norew'};
+    colors = cbrewer('qual','Dark2',8);
+    colors_light = cbrewer('qual','Set2',8);
+    colors = [colors(2,:) ; colors(6,:) ];
+    colors_light = [colors_light(2,:) ; colors_light(6,:)];
 
 elseif strcmp(ana2run,'lesion') && ~bothresid %- lesion analyses
     colors = cbrewer('qual','Set1',9);
@@ -113,7 +127,7 @@ elseif strcmp(ana2run,'lesion') && bothresid %-  lesion analyses for Figure S4A 
 end
 
 %% MAIN ANALYSES (FIGURES 2/5/6/S2/S3)
-if strcmp(ana2run,'main') | strcmp(ana2run,'alltime')
+if strcmp(ana2run,'main') || strcmp(ana2run,'alltime')
 
     %% Average CCA for each area pairs
     minVal = [];
@@ -650,7 +664,6 @@ if strcmp(ana2run,'main') | strcmp(ana2run,'alltime')
 
             %- extract average cca
             cca_map=[];cca_sem=[];
-
             for ar = 1 : length(area2test)
                 for ar2 = 1 : length(area2test)
                     if ar>ar2 && sum(ismember(res_CCA.mk{ar,ar2},mks{m}))>=minReplicates
@@ -675,9 +688,8 @@ if strcmp(ana2run,'main') | strcmp(ana2run,'alltime')
     [pval,wald,pval_adj] = cca_posthoc(lme,periods,area2test,3,true);
     [pval,wald,pval_adj] = cca_posthoc_periods(lme,periods,area2test,3,true);
 
-
 %% LESION ANALYSES (FIGURES 3/S4)
-elseif strcmp(ana2run,'lesion') && ~crosstemp
+elseif (strcmp(ana2run,'lesion') && ~crosstemp) || strcmp(ana2run,'rewTr') 
    
     %% Average CCA for each area pairs
     minVal = []; maxVal = [];
@@ -742,10 +754,8 @@ elseif strcmp(ana2run,'lesion') && ~crosstemp
             temp_norm = (temp - mean(temp(bin2take)))/std(temp(bin2take));
             bin2show = param.time >= -500  & param.time <= 1000;
 
-            if strcmp(period2run,'Stim')
-                xx = 1;
-            else
-                xx = 2;
+            if strcmp(period2run,'Stim') ; xx = 1;
+            else ; xx = 2;
             end
 
             y_smoothed1 = smooth(temp_norm(param.bin_name==nb_bins(xx) & bin2show),5,'moving');
@@ -765,7 +775,6 @@ elseif strcmp(ana2run,'lesion') && ~crosstemp
             end
 
             plot(y_smo_combined,'Color',colorsArea(ar2,:),'LineWidth',2);hold on;
-
         end
     end
     set(gca,"XTick",find(x_sub_combined==13),'XTickLabel',periods(2:end),'Color','none')
@@ -774,7 +783,6 @@ elseif strcmp(ana2run,'lesion') && ~crosstemp
     timebar = find(cumsum(diff(x_sub_combined))==500); %- 0.5s length
     line([length(x_sub_combined)-timebar length(x_sub_combined)-1],[-4 -4],'LineWidth',2,'Color','k')
     box off
-
 
     %% Connectivity fingerprints
     if length(area2test)==8
@@ -786,7 +794,6 @@ elseif strcmp(ana2run,'lesion') && ~crosstemp
     for ar = 1 : length(area2test_new)
         area2test_new{ar} = area2test_new{ar}(2:end);
     end
-
     ar = find(ismember(area2test_new,area2run(2:end)));
 
     subplot(1,5,4)
@@ -961,7 +968,6 @@ elseif strcmp(ana2run,'lesion') && crosstemp
         end
     end
 
-
     %% directionality ratios
     FF_FB_ratio = cell(length(area2test),length(area2test));
     figure; x = 0;
@@ -1015,7 +1021,6 @@ elseif strcmp(ana2run,'lesion') && crosstemp
             end
         end
     end
-
 end
 
 
