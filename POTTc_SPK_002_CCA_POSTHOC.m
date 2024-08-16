@@ -19,9 +19,9 @@ elseif ispc
     path2go = 'R:\POTTconn\data\'; %- path where SPKpool files are!
 end
 
-ana2run = 'lesion'; % 'main' / 'lesion' / 'alltime' / 'rewTr'
+ana2run = 'rewTr'; % 'main' / 'lesion' / 'alltime' / 'rewTr'
 area2run = 'a12o'; %- only used for ana2run='lesion' or 'rewTr' / can be a12o/a11ml/LAI
-period2run = 'Stim'; %- only used for ana2run='lesion' / can be 'Stim' 'Rew'
+period2run = 'Rew'; %- only used for ana2run='lesion' or 'rewTr' / can be 'Stim' 'Rew'
 crosstemp = false; %- only used for ana2run='lesion' / can be true (FIGURE S5) or false (FIGURES 3/S4)
 bothresid = false; %- when using residuals on both area (Figure S4A): true, otherwise false
 
@@ -69,6 +69,7 @@ elseif strcmp(ana2run,'rewTr')
     param = LESION{1}.param;
 
     predic = {'rew' 'norew'};
+    predic_stats = {'rewarded' 'not'};
     colors = cbrewer('qual','Dark2',8);
     colors_light = cbrewer('qual','Set2',8);
     colors = [colors(2,:) ; colors(6,:) ];
@@ -840,7 +841,7 @@ elseif (strcmp(ana2run,'lesion') && ~crosstemp) || strcmp(ana2run,'rewTr')
     %% stats
     % DO NOT WRITE 'chosenjuicerew' or emmeans freaking thinks its related to rew so dummy coding fails!!!!!!!!!!
 
-    if ~bothresid
+    if ~bothresid & ~strcmp(ana2run,'rewTr')
         x=0;
         nb_bins = unique(param.bin_name);
         ar = find(ismember(area2test,area2run));
@@ -906,6 +907,41 @@ elseif (strcmp(ana2run,'lesion') && ~crosstemp) || strcmp(ana2run,'rewTr')
         end
         xlim([0 length(predic_stats)+1])
         set(gca,"XTick",1:length(predic_stats),"XTickLabel",predic_stats)
+    end
+
+    if strcmp(ana2run,'rewTr')
+        %% STAT - comparing between pairs of areas
+        p = find(strcmp(periods,'Rew'));
+        bin2take = param.bin_name == periods_bin{p} & ( param.time >= periods_time{p}(1)  & param.time <= periods_time{p}(2) );
+
+        data_table = table();
+        mks = {'M' 'X'};
+        for m = 1 : length(mks)
+            for ar = 1 : length(area2test)
+                for ar2 = 1 : length(area2test)
+                    if ar>ar2 && sum(ismember(LESION{1}.res_CCA.mk{ar,ar2},mks{m}))>=LESION{1}.minReplicates
+                        takeme = ismember(LESION{1}.res_CCA.mk{ar,ar2},mks{m});
+                        takeme = find(takeme==1);
+
+                        temp_rew = [];temp_norew=[];
+                        for j = 1 : size(LESION{1}.res_CCA.cvr{ar,ar2}(takeme,:,:),1)
+                            temp_rew(j,:) = diag(squeeze(LESION{1}.res_CCA.cvr{ar,ar2}(takeme(j),:,:)));
+                            temp_norew(j,:) = diag(squeeze(LESION{2}.res_CCA.cvr{ar,ar2}(takeme(j),:,:)));
+                        end
+
+                        temp_rew = nanmean(temp_rew(:,bin2take),2);
+                        temp_norew = nanmean(temp_norew(:,bin2take),2);
+
+                        data_table = [data_table ; table(temp_rew,repmat({[area2test{ar} '-' area2test{ar2}]},size(temp_rew)),repmat(mks(m),size(temp_rew)),repmat({'rew'},size(temp_rew)),'VariableNames',{'corr','pair','mk','reward'}    )];
+                        data_table = [data_table ; table(temp_norew,repmat({[area2test{ar} '-' area2test{ar2}]},size(temp_norew)),repmat(mks(m),size(temp_norew)),repmat({'unrew'},size(temp_norew)),'VariableNames',{'corr','pair','mk','reward'}    )];
+                    end
+                end
+            end
+        end
+
+        models_form = {'corr ~ 1 + pair*reward  + (1|mk)'};
+        lme = fitglme(data_table,models_form{1});
+        anova(lme)
     end
 
 %% LESION ANALYSES - CROSSTEMPORAL (FIGURE S5)
