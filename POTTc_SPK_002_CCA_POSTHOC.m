@@ -6,6 +6,14 @@
 %-
 %- Require data available at : 10.5281/zenodo.13306842
 %-
+%- Main matrix to look for: res_CCA, which contains the correlation values
+%- res_CCA.cvr = crossvalidated rho for each area pairs (8 areas x 8 areas), refers to area2test matrix for order
+%-               res_CCA.cvr's size is N session x T time bins x T time bins (cross-temporal correlation)
+%- res_CCA.cvr_perm = same but permutations
+%- res_CCA.cva and cvb = coefficients for CC
+%- res_CCA.nbunits = nb of considered units for each pair and session
+%- res_CCA.mk and sess = monkey name and session for each pair
+%-
 %- Author: Fred M. Stoll, Icahn School of Medicine at Mount Sinai, NY
 %- Last updated: 2024.08
 
@@ -19,7 +27,7 @@ elseif ispc
     path2go = 'R:\POTTconn\data\'; %- path where SPKpool files are!
 end
 
-ana2run = 'rewTr'; % 'main' / 'lesion' / 'alltime' / 'rewTr'
+ana2run = 'main'; % 'main' / 'lesion' / 'alltime' / 'rewTr'
 area2run = 'a12o'; %- only used for ana2run='lesion' or 'rewTr' / can be a12o/a11ml/LAI
 period2run = 'Rew'; %- only used for ana2run='lesion' or 'rewTr' / can be 'Stim' 'Rew'
 crosstemp = false; %- only used for ana2run='lesion' / can be true (FIGURE S5) or false (FIGURES 3/S4)
